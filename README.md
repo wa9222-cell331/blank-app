@@ -1,19 +1,31 @@
-# 🎈 Blank app template
+# 📘 생활기록부 분석 대시보드
 
-A simple Streamlit app template for you to modify!
+학생 생활기록부 PDF를 업로드하면 영역별 내용과 역량 신호를 간단히 분석해
+강점/보완점 및 다음 활동 아이디어를 제공하는 Streamlit 앱입니다.
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://blank-app-template.streamlit.app/)
+## 주요 기능
 
-### How to run it on your own machine
+- PDF 텍스트 추출 및 영역(자율/동아리/진로/봉사/독서/세특/행동특성) 단위 분리
+- 키워드 기반 역량 점수(주도성, 협업역량, 탐구심, 진로명확성) 계산
+- 강점/보완점 자동 요약
+- 보완 역량 기반 후속 활동 추천
 
-1. Install the requirements
+> 본 도구는 키워드 기반 1차 피드백 도구입니다. 실제 지도/평가는 교사 및 전문가 검토와 함께 사용하세요.
 
-   ```
-   $ pip install -r requirements.txt
-   ```
+## 실행 방법
 
-2. Run the app
+1. 의존성 설치
 
-   ```
-   $ streamlit run streamlit_app.py
-   ```
+```bash
+pip install -r requirements.txt
+# PDF 분석까지 사용하려면
+pip install pypdf
+```
+
+2. 앱 실행
+
+```bash
+streamlit run streamlit_app.py
+```
+
+3. 브라우저에서 PDF 업로드 후 결과 확인
