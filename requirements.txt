@@ -1,5 +1,10 @@
-streamlit
-google-generativeai
-pypdf
-pymupdf
+streamlit>=1.30.0
+google-generativeai>=0.8.0
+pypdf>=4.0.0
+PyMuPDF>=1.24.0
+pandas>=2.0.0
+matplotlib
+wordcloud
+reportlab
+altair
 json-repair
