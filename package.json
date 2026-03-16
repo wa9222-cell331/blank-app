@@ -1,0 +1,22 @@
+{
+  "name": "blank-app",
+  "version": "1.0.0",
+  "description": "A simple Streamlit app template for you to modify!",
+  "main": "index.js",
+  "scripts": {
+    "start": "remotion preview src/Root.tsx",
+    "build": "remotion render src/Root.tsx ConsultantVideo --codec h264"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://local_proxy@127.0.0.1:45109/git/wa9222-cell331/blank-app"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "remotion": "^4.0.435"
+  }
+}

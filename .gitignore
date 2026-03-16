@@ -1,5 +1,12 @@
 .streamlit/secrets.toml
 
+# Node modules and dependencies
+node_modules/
+package-lock.json
+npm-debug.log
+dist/
+out/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
