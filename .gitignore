@@ -1,5 +1,9 @@
 .streamlit/secrets.toml
 
+# SQLite database (runtime data)
+*.db
+*.db-journal
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
