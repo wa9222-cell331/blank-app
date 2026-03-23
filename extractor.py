@@ -1,5 +1,42 @@
 import anthropic
+import base64
 import json
+
+
+def extract_text_from_pdf(pdf_bytes: bytes, api_key: str) -> str:
+    """PDF 파일에서 생활기록부 전체 텍스트를 추출합니다. 스캔 PDF도 처리 가능합니다."""
+    client = anthropic.Anthropic(api_key=api_key)
+
+    pdf_data = base64.standard_b64encode(pdf_bytes).decode("utf-8")
+
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=8000,
+        messages=[{
+            "role": "user",
+            "content": [
+                {
+                    "type": "document",
+                    "source": {
+                        "type": "base64",
+                        "media_type": "application/pdf",
+                        "data": pdf_data,
+                    },
+                },
+                {
+                    "type": "text",
+                    "text": (
+                        "이 PDF는 학생의 생활기록부입니다. "
+                        "PDF에 있는 모든 텍스트를 원문 그대로 추출해주세요. "
+                        "서식(줄바꿈, 항목 구분 등)을 최대한 유지하고, "
+                        "어떠한 요약이나 수정 없이 전체 내용을 그대로 출력해주세요."
+                    ),
+                },
+            ],
+        }],
+    )
+
+    return message.content[0].text.strip()
 
 
 def extract_theories_and_books(text: str, api_key: str) -> dict:

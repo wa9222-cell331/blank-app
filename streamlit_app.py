@@ -3,7 +3,7 @@ import json
 import pandas as pd
 
 from database import init_db, save_student, save_extracted_items, save_recommendations, get_all_students, get_student_data
-from extractor import extract_theories_and_books, recommend_majors
+from extractor import extract_theories_and_books, recommend_majors, extract_text_from_pdf
 
 try:
     from sheets_manager import create_recommendation_sheet
@@ -71,8 +71,34 @@ with tab_analyze:
     with col1:
         st.subheader("📝 생활기록부 입력")
         student_name = st.text_input("학생 이름", placeholder="예: 홍길동")
+
+        # PDF 업로드 ──────────────────────────────────────────────
+        uploaded_pdf = st.file_uploader(
+            "📎 생활기록부 PDF 첨부 (선택)",
+            type=["pdf"],
+            help="PDF를 첨부하면 텍스트를 자동으로 인식합니다. 스캔 파일도 지원합니다.",
+        )
+
+        if uploaded_pdf is not None:
+            pdf_key = f"pdf_{uploaded_pdf.name}_{uploaded_pdf.size}"
+            if st.session_state.get("last_pdf_key") != pdf_key:
+                if not anthropic_key:
+                    st.warning("PDF 텍스트 인식을 위해 사이드바에서 API Key를 먼저 입력해주세요.")
+                else:
+                    with st.spinner("📄 PDF에서 텍스트를 인식하는 중..."):
+                        try:
+                            extracted_pdf_text = extract_text_from_pdf(uploaded_pdf.read(), anthropic_key)
+                            st.session_state["pdf_text"] = extracted_pdf_text
+                            st.session_state["last_pdf_key"] = pdf_key
+                            st.success(f"✅ PDF 텍스트 인식 완료 ({len(extracted_pdf_text):,}자)")
+                        except Exception as e:
+                            st.error(f"PDF 인식 실패: {e}")
+
+        # 텍스트 영역 (PDF 추출 텍스트가 있으면 자동 채움) ──────
+        default_text = st.session_state.get("pdf_text", "")
         record_text = st.text_area(
-            "생활기록부 내용을 붙여넣으세요",
+            "생활기록부 내용",
+            value=default_text,
             height=400,
             placeholder="""예시:
 교과학습 발달상황:
@@ -87,6 +113,7 @@ with tab_analyze:
 행동특성 및 종합의견:
 케인즈의 유효수요이론과 밀턴 프리드먼의 통화주의를 비교 분석하는
 자율 탐구 활동을 진행함...""",
+            help="PDF를 첨부하면 자동으로 채워집니다. 직접 수정도 가능합니다.",
         )
 
         analyze_btn = st.button("🔍 이론·도서 추출 및 학과 추천", type="primary", use_container_width=True)
