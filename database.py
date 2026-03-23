@@ -1,5 +1,4 @@
 import sqlite3
-import json
 from datetime import datetime
 
 DB_PATH = "student_records.db"
@@ -20,19 +19,9 @@ def init_db():
         CREATE TABLE IF NOT EXISTS extracted_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             student_id INTEGER,
-            item_type TEXT,  -- 'theory' or 'book'
+            item_type TEXT,
             item_name TEXT,
             context TEXT,
-            FOREIGN KEY (student_id) REFERENCES students(id)
-        )
-    """)
-    c.execute("""
-        CREATE TABLE IF NOT EXISTS recommendations (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id INTEGER,
-            major TEXT,
-            score INTEGER,
-            reason TEXT,
             FOREIGN KEY (student_id) REFERENCES students(id)
         )
     """)
@@ -70,18 +59,6 @@ def save_extracted_items(student_id: int, theories: list, books: list):
     conn.close()
 
 
-def save_recommendations(student_id: int, recommendations: list):
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    for rec in recommendations:
-        c.execute(
-            "INSERT INTO recommendations (student_id, major, score, reason) VALUES (?, ?, ?, ?)",
-            (student_id, rec.get("major", ""), rec.get("score", 0), rec.get("reason", ""))
-        )
-    conn.commit()
-    conn.close()
-
-
 def get_all_students():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -96,9 +73,10 @@ def get_student_data(student_id: int):
     c = conn.cursor()
     c.execute("SELECT * FROM students WHERE id = ?", (student_id,))
     student = c.fetchone()
-    c.execute("SELECT item_type, item_name, context FROM extracted_items WHERE student_id = ?", (student_id,))
+    c.execute(
+        "SELECT item_type, item_name, context FROM extracted_items WHERE student_id = ?",
+        (student_id,)
+    )
     items = c.fetchall()
-    c.execute("SELECT major, score, reason FROM recommendations WHERE student_id = ? ORDER BY score DESC", (student_id,))
-    recs = c.fetchall()
     conn.close()
-    return student, items, recs
+    return student, items

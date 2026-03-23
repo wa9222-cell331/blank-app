@@ -72,53 +72,6 @@ def extract_theories_and_books(text: str, api_key: str) -> dict:
     )
 
     response_text = message.content[0].text.strip()
-    # JSON 블록 파싱
-    if "```json" in response_text:
-        response_text = response_text.split("```json")[1].split("```")[0].strip()
-    elif "```" in response_text:
-        response_text = response_text.split("```")[1].split("```")[0].strip()
-
-    return json.loads(response_text)
-
-
-def recommend_majors(theories: list, books: list, api_key: str) -> list:
-    """추출된 이론과 도서를 바탕으로 대학 학과를 추천합니다."""
-    client = anthropic.Anthropic(api_key=api_key)
-
-    theories_str = "\n".join([f"- {t['name']}: {t['context']}" for t in theories]) or "없음"
-    books_str = "\n".join([f"- {b['name']}: {b['context']}" for b in books]) or "없음"
-
-    prompt = f"""학생의 생활기록부에서 추출된 이론과 도서를 분석하여 대학 학과를 추천해주세요.
-
-【이론 목록】
-{theories_str}
-
-【도서 목록】
-{books_str}
-
-이 학생에게 적합한 대학 학과 TOP 5를 추천해주세요.
-각 학과에 대해 점수(100점 만점)와 추천 이유를 설명해주세요.
-
-반드시 아래 JSON 형식으로만 응답하세요:
-[
-  {{
-    "major": "학과명",
-    "score": 점수,
-    "reason": "이 학과를 추천하는 구체적인 이유 (어떤 이론/도서와 연관되는지 포함)",
-    "related_theories": ["관련 이론1", "관련 이론2"],
-    "related_books": ["관련 도서1", "관련 도서2"]
-  }}
-]
-
-점수가 높은 순서로 정렬하고, 반드시 유효한 JSON만 반환하세요."""
-
-    message = client.messages.create(
-        model="claude-sonnet-4-6",
-        max_tokens=3000,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    response_text = message.content[0].text.strip()
     if "```json" in response_text:
         response_text = response_text.split("```json")[1].split("```")[0].strip()
     elif "```" in response_text:
