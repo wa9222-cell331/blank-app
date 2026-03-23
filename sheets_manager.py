@@ -9,56 +9,71 @@ SCOPES = [
 
 SOURCE = "학종 강선생"
 
+# 마스터 시트의 워크시트 이름
+SHEET_THEORIES = "📚 이론 목록"
+SHEET_BOOKS = "📖 도서 목록"
+SHEET_SUMMARY = "📋 학생 요약"
+
 
 def get_gspread_client(credentials_json: dict):
     creds = Credentials.from_service_account_info(credentials_json, scopes=SCOPES)
     return gspread.authorize(creds)
 
 
-def create_recommendation_sheet(
-    credentials_json: dict,
-    student_name: str,
-    theories: list,
-    books: list,
-    recommendations: list,  # 사용하지 않음 (학과 추천 제거)
-) -> str:
-    """학생 생기부 분석 결과를 구글 시트에 작성하고 URL을 반환합니다."""
+# ── 최초 1회: 마스터 DB 시트 생성 ──────────────────────────────────────
+def create_master_sheet(credentials_json: dict) -> tuple[str, str]:
+    """마스터 DB 시트를 생성하고 (spreadsheet_id, url)을 반환합니다."""
     gc = get_gspread_client(credentials_json)
 
-    title = f"[{SOURCE}] {student_name} 생기부 분석 - {datetime.now().strftime('%Y%m%d_%H%M')}"
+    title = f"[{SOURCE}] 생기부 분석 DB"
     spreadsheet = gc.create(title)
     spreadsheet.share(None, perm_type="anyone", role="reader")
 
-    # ── 시트 1: 이론 목록 ──────────────────────────────────────────
+    # 시트1: 이론 목록
     theory_sheet = spreadsheet.sheet1
-    theory_sheet.update_title("📚 이론 목록")
+    theory_sheet.update_title(SHEET_THEORIES)
+    theory_sheet.append_row(["학생명", "이론명", "언급 맥락", "분석일시", "출처"])
+    _format_header(theory_sheet, 5)
 
-    theory_rows = [["번호", "이론명", "언급 맥락", "출처"]]
-    for i, t in enumerate(theories, 1):
-        theory_rows.append([i, t.get("name", ""), t.get("context", ""), SOURCE])
-    theory_sheet.update(theory_rows, "A1")
-    _format_header(theory_sheet, 4)
+    # 시트2: 도서 목록
+    book_sheet = spreadsheet.add_worksheet(title=SHEET_BOOKS, rows=1000, cols=10)
+    book_sheet.append_row(["학생명", "도서명", "언급 맥락", "분석일시", "출처"])
+    _format_header(book_sheet, 5)
 
-    # ── 시트 2: 도서 목록 ──────────────────────────────────────────
-    book_sheet = spreadsheet.add_worksheet(title="📖 도서 목록", rows=100, cols=10)
-    book_rows = [["번호", "도서명", "언급 맥락", "출처"]]
-    for i, b in enumerate(books, 1):
-        book_rows.append([i, b.get("name", ""), b.get("context", ""), SOURCE])
-    book_sheet.update(book_rows, "A1")
-    _format_header(book_sheet, 4)
+    # 시트3: 학생 요약
+    summary_sheet = spreadsheet.add_worksheet(title=SHEET_SUMMARY, rows=1000, cols=10)
+    summary_sheet.append_row(["학생명", "이론 수", "도서 수", "분석일시", "출처"])
+    _format_header(summary_sheet, 5)
 
-    # ── 시트 3: 요약 ───────────────────────────────────────────────
-    summary_sheet = spreadsheet.add_worksheet(title="📋 요약", rows=20, cols=5)
-    summary_sheet.update([
-        ["생활기록부 분석 결과"],
-        [],
-        ["학생명", student_name],
-        ["분석일시", datetime.now().strftime("%Y년 %m월 %d일 %H:%M")],
-        ["추출된 이론 수", len(theories)],
-        ["추출된 도서 수", len(books)],
-        [],
-        ["출처", SOURCE],
-    ], "A1")
+    return spreadsheet.id, spreadsheet.url
+
+
+# ── 이후: 기존 시트에 학생 데이터 추가 ────────────────────────────────
+def append_student_to_sheet(
+    credentials_json: dict,
+    spreadsheet_id: str,
+    student_name: str,
+    theories: list,
+    books: list,
+) -> str:
+    """기존 마스터 시트에 학생 데이터를 추가하고 url을 반환합니다."""
+    gc = get_gspread_client(credentials_json)
+    spreadsheet = gc.open_by_key(spreadsheet_id)
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    # 이론 추가
+    theory_sheet = spreadsheet.worksheet(SHEET_THEORIES)
+    for t in theories:
+        theory_sheet.append_row([student_name, t.get("name", ""), t.get("context", ""), now, SOURCE])
+
+    # 도서 추가
+    book_sheet = spreadsheet.worksheet(SHEET_BOOKS)
+    for b in books:
+        book_sheet.append_row([student_name, b.get("name", ""), b.get("context", ""), now, SOURCE])
+
+    # 요약 추가
+    summary_sheet = spreadsheet.worksheet(SHEET_SUMMARY)
+    summary_sheet.append_row([student_name, len(theories), len(books), now, SOURCE])
 
     return spreadsheet.url
 
@@ -70,3 +85,11 @@ def _format_header(sheet, col_count: int):
         "backgroundColor": {"red": 0.26, "green": 0.52, "blue": 0.96},
         "horizontalAlignment": "CENTER",
     })
+
+
+# ── 하위 호환용 래퍼 (기존 코드에서 호출하던 함수명 유지) ──────────────
+def create_recommendation_sheet(credentials_json, student_name, theories, books, recommendations=None):
+    """deprecated: append_student_to_sheet 사용 권장"""
+    _id, url = create_master_sheet(credentials_json)
+    append_student_to_sheet(credentials_json, _id, student_name, theories, books)
+    return url

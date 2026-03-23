@@ -2,11 +2,11 @@ import streamlit as st
 import json
 import pandas as pd
 
-from database import init_db, save_student, save_extracted_items, get_all_students, get_student_data
+from database import init_db, save_student, save_extracted_items, get_all_students, get_student_data, get_config, set_config
 from extractor import extract_theories_and_books, extract_text_from_pdf
 
 try:
-    from sheets_manager import create_recommendation_sheet
+    from sheets_manager import create_master_sheet, append_student_to_sheet
     SHEETS_AVAILABLE = True
 except Exception:
     SHEETS_AVAILABLE = False
@@ -40,14 +40,8 @@ with st.sidebar:
     st.subheader("📊 Google Sheets 연동")
     use_sheets = st.toggle("구글 시트 내보내기 사용", value=False)
 
-    st.divider()
-    st.markdown(
-        "<div style='text-align:center; color:#aaa; font-size:12px;'>📌 학종 강선생</div>",
-        unsafe_allow_html=True,
-    )
-
     credentials_json = None
-    if use_sheets:
+    if use_sheets and SHEETS_AVAILABLE:
         uploaded_creds = st.file_uploader(
             "서비스 계정 JSON 파일 업로드",
             type=["json"],
@@ -56,6 +50,25 @@ with st.sidebar:
         if uploaded_creds:
             credentials_json = json.load(uploaded_creds)
             st.success("✅ 인증 파일 로드 완료")
+
+        # 저장된 마스터 시트 표시
+        saved_sheet_id = get_config("master_sheet_id")
+        saved_sheet_url = get_config("master_sheet_url")
+        if saved_sheet_id:
+            st.success("📋 연결된 DB 시트")
+            st.link_button("📊 시트 열기", saved_sheet_url, use_container_width=True)
+            if st.button("🔗 연결 해제", use_container_width=True):
+                set_config("master_sheet_id", "")
+                set_config("master_sheet_url", "")
+                st.rerun()
+        else:
+            st.info("내보내기 시 새 DB 시트가 자동 생성됩니다.")
+
+    st.divider()
+    st.markdown(
+        "<div style='text-align:center; color:#aaa; font-size:12px;'>📌 학종 강선생</div>",
+        unsafe_allow_html=True,
+    )
 
 # ── 탭 구성 ───────────────────────────────────────────────────────
 tab_input, tab_db = st.tabs(["➕ 생기부 입력", "🗄️ DB 조회"])
@@ -172,23 +185,34 @@ with tab_input:
             # 구글 시트 내보내기
             if SHEETS_AVAILABLE and use_sheets:
                 st.divider()
-                if st.button("📊 구글 시트로 내보내기", use_container_width=True):
+                if st.button("📊 구글 시트 DB에 추가", use_container_width=True):
                     if not credentials_json:
                         st.error("사이드바에서 서비스 계정 JSON 파일을 업로드해주세요.")
                     else:
-                        with st.spinner("구글 시트 생성 중..."):
+                        with st.spinner("구글 시트 업데이트 중..."):
                             try:
-                                sheet_url = create_recommendation_sheet(
+                                sheet_id = get_config("master_sheet_id")
+                                if not sheet_id:
+                                    # 최초: 마스터 시트 생성
+                                    sheet_id, sheet_url = create_master_sheet(credentials_json)
+                                    set_config("master_sheet_id", sheet_id)
+                                    set_config("master_sheet_url", sheet_url)
+                                    st.success("✅ DB 시트가 새로 생성되었습니다!")
+                                else:
+                                    sheet_url = get_config("master_sheet_url")
+
+                                append_student_to_sheet(
                                     credentials_json,
+                                    sheet_id,
                                     st.session_state.get("student_name", "학생"),
                                     theories,
                                     books,
-                                    [],
                                 )
-                                st.success("✅ 구글 시트가 생성되었습니다!")
+                                st.success(f"✅ DB에 추가 완료! (이론 {len(theories)}개, 도서 {len(books)}개)")
                                 st.link_button("📊 구글 시트 열기", sheet_url)
+                                st.rerun()
                             except Exception as e:
-                                st.error(f"구글 시트 생성 실패: {e}")
+                                st.error(f"구글 시트 업데이트 실패: {e}")
 
 # ════════════════════════════════════════════════════════════════════
 # 탭 2: DB 조회

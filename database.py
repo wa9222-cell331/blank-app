@@ -25,6 +25,29 @@ def init_db():
             FOREIGN KEY (student_id) REFERENCES students(id)
         )
     """)
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS config (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+
+def get_config(key: str) -> str | None:
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("SELECT value FROM config WHERE key = ?", (key,))
+    row = c.fetchone()
+    conn.close()
+    return row[0] if row else None
+
+
+def set_config(key: str, value: str):
+    conn = sqlite3.connect(DB_PATH)
+    c = conn.cursor()
+    c.execute("INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)", (key, value))
     conn.commit()
     conn.close()
 
