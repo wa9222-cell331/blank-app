@@ -22,6 +22,10 @@ st.set_page_config(
 
 st.title("📚 생활기록부 이론·도서 추출기")
 st.caption("생활기록부(PDF 또는 텍스트)에서 이론과 도서를 추출하여 DB에 저장합니다.")
+st.markdown(
+    "<div style='text-align:right; color:#888; font-size:13px;'>by <b>학종 강선생</b></div>",
+    unsafe_allow_html=True,
+)
 
 # ── 사이드바 ─────────────────────────────────────────────────────
 with st.sidebar:
@@ -35,6 +39,12 @@ with st.sidebar:
     st.divider()
     st.subheader("📊 Google Sheets 연동")
     use_sheets = st.toggle("구글 시트 내보내기 사용", value=False)
+
+    st.divider()
+    st.markdown(
+        "<div style='text-align:center; color:#aaa; font-size:12px;'>📌 학종 강선생</div>",
+        unsafe_allow_html=True,
+    )
 
     credentials_json = None
     if use_sheets:
@@ -131,6 +141,7 @@ with tab_input:
                     save_extracted_items(student_id, theories, books)
                     st.session_state["last_student_id"] = student_id
                     st.success(f"✅ 저장 완료 — 이론 {len(theories)}개, 도서 {len(books)}개")
+                    st.caption("📌 출처: 학종 강선생")
                 else:
                     st.warning("추출된 이론·도서가 없습니다. 생기부 내용을 확인해주세요.")
 
@@ -253,3 +264,9 @@ with tab_db:
                 st.dataframe(df, hide_index=True, use_container_width=True)
             else:
                 st.info("저장된 도서가 없습니다.")
+
+        st.divider()
+        st.markdown(
+            "<div style='text-align:center; color:#aaa; font-size:12px;'>📌 출처: 학종 강선생</div>",
+            unsafe_allow_html=True,
+        )
